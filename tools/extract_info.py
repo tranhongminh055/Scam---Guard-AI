@@ -344,3 +344,95 @@ def extract_info(text: str, strict_mode: bool = False) -> dict[str, Any]:
         "extra_signals": extra_signals,
         "findings": findings,
     }
+
+
+# Bảng đầu số di động phổ biến tại Việt Nam (3 chữ số đầu)
+VN_MOBILE_PREFIXES: dict[str, str] = {
+    "032": "Viettel", "033": "Viettel", "034": "Viettel", "035": "Viettel",
+    "036": "Viettel", "037": "Viettel", "038": "Viettel", "039": "Viettel",
+    "086": "Viettel", "096": "Viettel", "097": "Viettel", "098": "Viettel",
+    "070": "MobiFone", "076": "MobiFone", "077": "MobiFone", "078": "MobiFone",
+    "079": "MobiFone", "089": "MobiFone", "090": "MobiFone", "093": "MobiFone",
+    "081": "VinaPhone", "082": "VinaPhone", "083": "VinaPhone", "084": "VinaPhone",
+    "085": "VinaPhone", "088": "VinaPhone", "091": "VinaPhone", "094": "VinaPhone",
+    "052": "Vietnamobile", "056": "Vietnamobile", "058": "Vietnamobile", "092": "Vietnamobile",
+    "059": "Gmobile", "099": "Gmobile",
+    "055": "Reddi/Wintel", "087": "I-Telecom",
+}
+
+
+def analyze_phone_number(raw_text: str) -> dict[str, Any]:
+    """Phân tích tĩnh số điện thoại (đầu số, nhà mạng, tổng đài, đầu số quốc tế lạ).
+
+    Không tra cứu cơ sở dữ liệu bên ngoài; chỉ phân tích định dạng & quy tắc đầu số.
+    """
+    cleaned = raw_text.strip()
+    digits = re.sub(r"\D", "", cleaned)
+    flags: list[str] = []
+    findings: list[str] = []
+
+    if not digits:
+        return {
+            "normalized": "",
+            "type": "invalid",
+            "flags": ["invalid_phone"],
+            "findings": ["Không tìm thấy chuỗi chữ số điện thoại hợp lệ."],
+        }
+
+    # Chuẩn hóa +84 / 84 về đầu 0
+    local_digits = digits
+    is_intl_non_vn = False
+    if cleaned.startswith("+") and not cleaned.startswith("+84"):
+        is_intl_non_vn = True
+    elif digits.startswith("00") and not digits.startswith("0084"):
+        is_intl_non_vn = True
+    elif digits.startswith("84") and len(digits) == 11:
+        local_digits = "0" + digits[2:]
+
+    if is_intl_non_vn:
+        flags.append("international_number")
+        findings.append(
+            f"Đầu số quốc tế ngoài Việt Nam ({cleaned}) — thường bị kẻ gian giả mạo "
+            "cơ quan nhà nước, ngân hàng hoặc gọi nháy máy lừa đảo."
+        )
+        phone_type = "international"
+    elif local_digits.startswith("1900") and 8 <= len(local_digits) <= 10:
+        flags.append("premium_hotline_1900")
+        findings.append(
+            f"Đầu số tổng đài tính cước 1900 ({local_digits}). Cần kiểm tra đúng tổng đài chính thức "
+            "trên website tổ chức trước khi gọi lại."
+        )
+        phone_type = "hotline_1900"
+    elif local_digits.startswith("1800") and 8 <= len(local_digits) <= 10:
+        flags.append("toll_free_1800")
+        findings.append(f"Đầu số tổng đài miễn cước 1800 ({local_digits}).")
+        phone_type = "hotline_1800"
+    elif len(local_digits) == 10 and local_digits[:3] in VN_MOBILE_PREFIXES:
+        carrier = VN_MOBILE_PREFIXES[local_digits[:3]]
+        flags.append("vn_mobile_personal")
+        findings.append(
+            f"Số di động cá nhân Việt Nam ({local_digits[:3]}xxxx — nhà mạng {carrier}). "
+            "Ngân hàng và cơ quan nhà nước KHÔNG dùng số di động cá nhân để yêu cầu OTP hay chuyển tiền."
+        )
+        phone_type = "mobile"
+    elif local_digits.startswith("02") and len(local_digits) == 11:
+        flags.append("vn_landline")
+        findings.append(
+            f"Số máy bàn cố định Việt Nam ({local_digits[:4]}xxxx). "
+            "Cần thận trọng vì nhiều cuộc gọi mạo danh Công an/Tòa án dùng đầu số cố định ảo."
+        )
+        phone_type = "landline"
+    else:
+        flags.append("unusual_format")
+        findings.append(
+            f"Định dạng số điện thoại bất thường ({cleaned}, {len(digits)} chữ số), "
+            "không khớp chuẩn số di động/tổng đài thông thường tại Việt Nam."
+        )
+        phone_type = "unusual"
+
+    return {
+        "normalized": local_digits,
+        "type": phone_type,
+        "flags": flags,
+        "findings": findings,
+    }

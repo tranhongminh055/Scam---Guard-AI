@@ -2,7 +2,7 @@
 
 from agent.core import ScamGuardAgent
 from tools.analyze_url import analyze_url
-from tools.extract_info import extract_info, mask_pii, normalize_vietnamese
+from tools.extract_info import analyze_phone_number, extract_info, mask_pii, normalize_vietnamese
 
 
 class TestExtractInfo:
@@ -83,12 +83,12 @@ class TestAnalyzeUrl:
 
 class TestAgentSafetyAndFallback:
     def test_input_validation_empty_and_too_long(self):
-        agent = ScamGuardAgent(api_key="")
+        agent = ScamGuardAgent(provider="gemini", api_key="")
         assert "error" in agent.analyze("   ")
         assert "error" in agent.analyze("a" * 1501)
 
     def test_fallback_when_no_api_key(self):
-        agent = ScamGuardAgent(api_key="")
+        agent = ScamGuardAgent(provider="gemini", api_key="")
         out = agent.analyze(
             "Vietcombank thong bao tai khoan bi khoa trong 24h tai https://vietc0mbank-verify.xyz"
         )
@@ -98,8 +98,16 @@ class TestAgentSafetyAndFallback:
         assert len(out["result"]["evidence"]) >= 2
 
     def test_contradiction_detector_flags_safe_with_high_risk_url(self):
-        agent = ScamGuardAgent(api_key="")
+        agent = ScamGuardAgent(provider="gemini", api_key="")
         ext = extract_info("Vietcombank tai https://vietc0mbank-verify.xyz")
         urls = [analyze_url("https://vietc0mbank-verify.xyz")]
         note = agent._detect_contradiction({"label": "An toàn"}, ext, urls)
         assert note is not None
+
+    def test_analyze_phone_number_types(self):
+        res_mobile = analyze_phone_number("0901234567")
+        assert res_mobile["type"] == "mobile"
+        res_intl = analyze_phone_number("+1 202 555 0199")
+        assert res_intl["type"] == "international"
+        res_1900 = analyze_phone_number("19001234")
+        assert res_1900["type"] == "hotline_1900"

@@ -43,6 +43,7 @@ class ScamGuardAgent:
         base_url: str | None = None,
         timeout: int | None = None,
     ) -> None:
+        load_dotenv(override=True)
         self.provider = (provider or os.getenv("LLM_PROVIDER", "gemini")).strip().lower()
         self.api_key = (api_key if api_key is not None else os.getenv("LLM_API_KEY", "")).strip()
         self.model = (model or os.getenv("LLM_MODEL", "gemini-2.0-flash")).strip()
@@ -51,7 +52,9 @@ class ScamGuardAgent:
 
     @property
     def is_llm_configured(self) -> bool:
-        """Kiểm tra đã có API key hợp lệ hay chưa."""
+        """Kiểm tra đã cấu hình LLM hợp lệ hay chưa (Ollama chạy local không cần API key)."""
+        if self.provider == "ollama":
+            return bool(self.model)
         return bool(self.api_key and self.api_key != "your_api_key_here")
 
     def validate_input(self, message: str) -> str | None:
@@ -66,9 +69,35 @@ class ScamGuardAgent:
         return None
 
     def _call_llm_api(self, user_prompt: str) -> str:
-        """Gọi trực tiếp REST API của Gemini hoặc OpenAI-compatible (OpenAI/Groq/OpenRouter)."""
+        """Gọi trực tiếp REST API của Ollama (local), Gemini hoặc OpenAI-compatible."""
         if not self.is_llm_configured:
             raise RuntimeError("Chưa cấu hình LLM_API_KEY trong file .env.")
+
+        if self.provider == "ollama":
+            base = self.base_url.rstrip("/") if self.base_url else "http://localhost:11434"
+            endpoint = f"{base}/api/chat"
+            payload = {
+                "model": self.model,
+                "stream": False,
+                "format": "json",
+                "keep_alive": "10m",
+                "options": {
+                    "temperature": 0.1,
+                    "num_ctx": 2048,
+                    "num_predict": 320,
+                },
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt},
+                ],
+            }
+            resp = requests.post(endpoint, json=payload, timeout=self.timeout)
+            resp.raise_for_status()
+            data = resp.json()
+            content = data.get("message", {}).get("content", "")
+            if not content:
+                raise ValueError("Ollama không trả về nội dung phản hồi.")
+            return content
 
         if self.provider == "gemini":
             endpoint = (
@@ -225,21 +254,34 @@ class ScamGuardAgent:
             confidence = 0.5
         confidence = round(max(0.0, min(1.0, confidence)), 2)
 
+        placeholder_garbage = {
+            "lý do ngắn 1", "lý do ngắn 2", "lý do 1", "lý do 2",
+            "khuyến nghị 1", "khuyến nghị 2", "bằng chứng ngắn",
+        }
         reasons = raw_result.get("reasons") or []
         if isinstance(reasons, str):
             reasons = [reasons]
-        reasons = [str(r).strip() for r in reasons if str(r).strip()]
+        reasons = [
+            str(r).strip()
+            for r in reasons
+            if str(r).strip() and str(r).strip().lower() not in placeholder_garbage
+        ]
+        if not reasons:
+            reasons = extract_result.get("findings", [])[:2] or [
+                "Kết quả phân tích dựa trên nội dung tin nhắn và bộ công cụ kiểm tra."
+            ]
 
         evidence = raw_result.get("evidence") or []
         clean_evidence: list[dict[str, str]] = []
         for item in evidence:
             if isinstance(item, dict) and item.get("finding"):
-                clean_evidence.append(
-                    {
-                        "tool": str(item.get("tool", "extract_info")),
-                        "finding": str(item.get("finding")).strip(),
-                    }
-                )
+                finding_str = str(item.get("finding")).strip()
+                if finding_str.lower() in placeholder_garbage:
+                    continue
+                tool_name = str(item.get("tool", "extract_info")).strip()
+                if "|" in tool_name:
+                    tool_name = "extract_info"
+                clean_evidence.append({"tool": tool_name, "finding": finding_str})
         if not clean_evidence:
             for f in extract_result.get("findings", []):
                 clean_evidence.append({"tool": "extract_info", "finding": f})
@@ -250,7 +292,11 @@ class ScamGuardAgent:
         recommendation = raw_result.get("recommendation") or []
         if isinstance(recommendation, str):
             recommendation = [recommendation]
-        recommendation = [str(r).strip() for r in recommendation if str(r).strip()]
+        recommendation = [
+            str(r).strip()
+            for r in recommendation
+            if str(r).strip() and str(r).strip().lower() not in placeholder_garbage
+        ]
         if not recommendation:
             recommendation = [
                 "Không bấm vào đường link lạ trong tin nhắn.",
