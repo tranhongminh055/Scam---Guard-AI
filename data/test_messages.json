@@ -1,0 +1,143 @@
+[
+  {
+    "id": "DEMO_01",
+    "title": "Demo 1 – Giả mạo ngân hàng (Lừa đảo)",
+    "is_demo": true,
+    "expected_label": "Lừa đảo",
+    "message": "Vietcombank thong bao: Tai khoan cua quy khach phat hien giao dich bat thuong va se bi khoa trong 24 gio. Vui long xac minh ngay tai https://vietc0mbank-verify.xyz/xac-thuc de tranh mat tien."
+  },
+  {
+    "id": "DEMO_02",
+    "title": "Demo 2 – Tin OTP thật (An toàn)",
+    "is_demo": true,
+    "expected_label": "An toàn",
+    "message": "Ma OTP xac thuc giao dich VCB Digibank cua quy khach la 482910. Ma co hieu luc trong 2 phut. Tuyet doi khong chia se ma nay cho bat ky ai."
+  },
+  {
+    "id": "DEMO_03",
+    "title": "Demo 3 – Ca khó giao hàng mơ hồ (Đáng ngờ)",
+    "is_demo": true,
+    "expected_label": "Đáng ngờ",
+    "message": "Chao anh/chi, ben giao hang goi giao don hang nhung khong lien lac duoc. Anh/chi goi lai so 0901234567 de xac nhan dia chi nhan hang nhe.",
+    "sample_clarification": "Tôi không đặt đơn hàng nào gần đây cả, và họ nhắn tin yêu cầu tôi chuyển trước 30.000đ phí giao lại."
+  },
+  {
+    "id": "TC_04",
+    "title": "Giả mạo EVN dọa cắt điện kèm link rút gọn",
+    "is_demo": false,
+    "expected_label": "Lừa đảo",
+    "message": "Thong bao tu Dien luc EVN: Hoa don tien dien thang nay cua quy khach qua han. He thong se ngung cung cap dien trong 2 gio. Thanh toan ngay tai bit.ly/evn-hoadon."
+  },
+  {
+    "id": "TC_05",
+    "title": "Giả mạo Công an yêu cầu cập nhật VNeID",
+    "is_demo": false,
+    "expected_label": "Lừa đảo",
+    "message": "Bo Cong An thong bao: Ho so dinh danh VNeID cua ban bi loi dong bo du lieu. Truy cap https://vneid-capnhat.top de xac thuc ngay, neu khong se bi xu ly hinh su."
+  },
+  {
+    "id": "TC_06",
+    "title": "Giả mạo BIDV không dấu viết tắt",
+    "is_demo": false,
+    "expected_label": "Lừa đảo",
+    "message": "BIDV: tk cua ban bi khoa tam thoi. vui long truy cap bidv-smartbanking.click de mo khoa ngay trong 24h va nhap ma otp."
+  },
+  {
+    "id": "TC_07",
+    "title": "Giả mạo bưu điện đòi nộp phí hải quan",
+    "is_demo": false,
+    "expected_label": "Lừa đảo",
+    "message": "VNPost: Buu kien cua ban dang bi giu tai kho do thieu phi hai quan 35.000d. Nop phi ngay tai https://vnpost-giaohang.online/pay."
+  },
+  {
+    "id": "TC_08",
+    "title": "Giả mạo Cục Thuế hoàn thuế",
+    "is_demo": false,
+    "expected_label": "Lừa đảo",
+    "message": "Tong cuc Thue thong bao quy khach du dieu kien hoan thue nam nay. Vui long cap nhat thong tin tai khoan tai https://etax-hoanthue.vip trong hom nay."
+  },
+  {
+    "id": "TC_09",
+    "title": "Giả mạo Techcombank tên miền lỗi chính tả",
+    "is_demo": false,
+    "expected_label": "Lừa đảo",
+    "message": "Techcombank: Quy khach can cap nhat sinh trac hoc khan cap truoc 17h hom nay tai https://techcombak-vn.site neu khong tai khoan se bi dinh chi."
+  },
+  {
+    "id": "TC_10",
+    "title": "Lừa đảo trúng thưởng yêu cầu đặt cọc",
+    "is_demo": false,
+    "expected_label": "Lừa đảo",
+    "message": "Chuc mung ban da trung thuong xe may tu Shopee! Lien he 0987.654.321 va chuyen tien dat coc phi xac minh 500.000d vao stk 19001234567890 de nhan qua."
+  },
+  {
+    "id": "TC_11",
+    "title": "Giả mạo MoMo yêu cầu gửi OTP",
+    "is_demo": false,
+    "expected_label": "Lừa đảo",
+    "message": "Vi MoMo thong bao tai khoan dang bi dang nhap trai phep. Gui ma OTP vua nhan de nhan vien ho tro khoa giao dich ngay lap tuc."
+  },
+  {
+    "id": "TC_12",
+    "title": "Tin biến động số dư bình thường (An toàn)",
+    "is_demo": false,
+    "expected_label": "An toàn",
+    "message": "TK 001100XXXX -250,000 VND luc 10:15 19/11/2026. So du: 4,200,000 VND. ND: Thanh toan hoa don sieu thi."
+  },
+  {
+    "id": "TC_13",
+    "title": "Tin nhắc lịch khám bệnh (An toàn)",
+    "is_demo": false,
+    "expected_label": "An toàn",
+    "message": "Phong kham Da khoa thong bao: Quy khach co lich tai kham vao 08h30 ngay 22/11/2026. Vui long mang theo so kham benh."
+  },
+  {
+    "id": "TC_14",
+    "title": "Tin nhắn gia đình bình thường (An toàn)",
+    "is_demo": false,
+    "expected_label": "An toàn",
+    "message": "Me oi chieu nay con ve muon khoang 7 gio, me khong can doi com con dau nhe."
+  },
+  {
+    "id": "TC_15",
+    "title": "Thông báo giao dịch ngân hàng có domain chính thức (An toàn)",
+    "is_demo": false,
+    "expected_label": "An toàn",
+    "message": "Vietcombank thong bao bieu phi dich vu moi ap dung tu thang sau. Chi tiet xem tai https://www.vietcombank.com.vn."
+  },
+  {
+    "id": "TC_16",
+    "title": "Tin OTP viết không dấu kèm cảnh báo (An toàn)",
+    "is_demo": false,
+    "expected_label": "An toàn",
+    "message": "Ma xac thuc OTP dang nhap cua ban la 913045. Tuyet doi khong cung cap ma nay cho bat ky ai ke ca nhan vien ngan hang."
+  },
+  {
+    "id": "TC_17",
+    "title": "Tin nhắc đóng tiền điện không có link lạ (Đáng ngờ)",
+    "is_demo": false,
+    "expected_label": "Đáng ngờ",
+    "message": "Chao anh, em ben dien luc bao nha minh thang nay chua dong tien dien, anh kiem tra lai giup em nhe."
+  },
+  {
+    "id": "TC_18",
+    "title": "Tin mượn tiền từ số lạ xưng người quen (Đáng ngờ)",
+    "is_demo": false,
+    "expected_label": "Đáng ngờ",
+    "message": "Anh oi so cu em bi mat, day la so moi cua em. Anh co dang ranh khong cho em nho chuyen khoan gap mot chut toi em gui lai."
+  },
+  {
+    "id": "TC_19",
+    "title": "Tin mời làm việc online lương cao (Đáng ngờ)",
+    "is_demo": false,
+    "expected_label": "Đáng ngờ",
+    "message": "Chao ban, ben minh dang tuyen cong tac vien lam tai nha ngay 2 gio thu nhap 500k-1tr/ngay. Ban quan tam nhan tin lai de minh huong dan."
+  },
+  {
+    "id": "TC_20",
+    "title": "Tin thông báo bảo hiểm xã hội thiếu ngữ cảnh (Đáng ngờ)",
+    "is_demo": false,
+    "expected_label": "Đáng ngờ",
+    "message": "Thong bao: Ho so BHXH cua anh/chi can bo sung giay to trong tuan nay. Vui long lien he can bo phu trach theo so 0912 345 678."
+  }
+]
