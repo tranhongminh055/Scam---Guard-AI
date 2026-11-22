@@ -3,12 +3,35 @@
 from __future__ import annotations
 
 import html
+import json
 from datetime import datetime
+from pathlib import Path
 
 import streamlit as st
 
 from agent.core import MAX_INPUT_LENGTH, ScamGuardAgent
 from tools.extract_info import analyze_phone_number
+
+HISTORY_FILE = Path(__file__).resolve().parent / "data" / "chat_history.json"
+
+
+def load_history() -> list[dict]:
+    """Đọc toàn bộ lịch sử kiểm tra đã lưu vĩnh viễn từ file JSON cục bộ."""
+    if not HISTORY_FILE.exists():
+        return []
+    try:
+        with HISTORY_FILE.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, list) else []
+    except Exception:
+        return []
+
+
+def save_history(history: list[dict]) -> None:
+    """Lưu vĩnh viễn lịch sử kiểm tra xuống đĩa (data/chat_history.json)."""
+    HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with HISTORY_FILE.open("w", encoding="utf-8") as f:
+        json.dump(history, f, ensure_ascii=False, indent=2)
 
 CHANNEL_CONFIG = {
     "Chat": {
@@ -474,7 +497,7 @@ def main() -> None:
     if "channel" not in st.session_state:
         st.session_state.channel = "Chat"
     if "history" not in st.session_state:
-        st.session_state.history = []  # Lưu lịch sử trong phiên hiện tại
+        st.session_state.history = load_history()
     if "active_idx" not in st.session_state:
         st.session_state.active_idx = None
 
@@ -495,7 +518,7 @@ def main() -> None:
         st.markdown('<div class="sg-sidebar-heading">Lịch sử kiểm tra</div>', unsafe_allow_html=True)
 
         if not st.session_state.history:
-            st.caption("Chưa có lượt kiểm tra nào trong phiên này.")
+            st.caption("Chưa có lượt kiểm tra nào.")
         else:
             q = search_q.strip().lower()
             for idx in range(len(st.session_state.history) - 1, -1, -1):
@@ -510,6 +533,13 @@ def main() -> None:
                 if st.button(btn_label, key=f"hist_{idx}", use_container_width=True):
                     st.session_state.active_idx = idx
                     st.rerun()
+
+            st.markdown("---")
+            if st.button("🗑️ Xóa toàn bộ lịch sử", use_container_width=True):
+                st.session_state.history = []
+                st.session_state.active_idx = None
+                save_history([])
+                st.rerun()
 
     # --- NỘI DUNG CHÍNH ---
     active_entry = (
@@ -575,9 +605,10 @@ def main() -> None:
                         "channel": st.session_state.channel,
                         "message": message.strip(),
                         "output": output,
-                        "time": datetime.now().strftime("%H:%M"),
+                        "time": datetime.now().strftime("%d/%m %H:%M"),
                     }
                 )
+                save_history(st.session_state.history)
                 st.session_state.active_idx = len(st.session_state.history) - 1
                 st.rerun()
     else:
@@ -612,6 +643,8 @@ def main() -> None:
                             clarification=clarification.strip(),
                         )
                     st.session_state.history[st.session_state.active_idx]["output"] = updated
+                    st.session_state.history[st.session_state.active_idx]["clarification"] = clarification.strip()
+                    save_history(st.session_state.history)
                     st.rerun()
 
 

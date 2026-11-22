@@ -305,6 +305,104 @@ class ScamGuardAgent:
             ]
 
         follow_up = raw_result.get("follow_up_question")
+
+        # Hậu kiểm nhất quán theo Quy tắc Mục 4.3 & Evidence Grounding (chống ảo giác cho model nhỏ):
+        orgs = extract_result.get("organizations") or []
+        pressure_cats = extract_result.get("pressure_categories") or {}
+        has_safe_otp = bool(extract_result.get("has_otp_mention") and extract_result.get("has_safe_otp_warning"))
+        has_bad_url = any(
+            u["risk_level"] == "high" or "shortened_url" in u.get("flags", [])
+            for u in url_results
+        )
+        has_strong_signal = bool(
+            has_bad_url
+            or "de_doa_khoa_phat" in pressure_cats
+            or "yeu_cau_tai_chinh" in pressure_cats
+            or ("yeu_cau_thong_tin_nhay_cam" in pressure_cats and not has_safe_otp)
+        )
+        has_any_risk_entity = any(
+            [
+                bool(url_results),
+                bool(extract_result.get("phones")),
+                bool(extract_result.get("account_numbers")),
+                bool(orgs),
+                bool(extract_result.get("pressure_phrases")),
+                bool(extract_result.get("has_otp_mention")),
+            ]
+        )
+
+        # Trường hợp 1: Đủ điều kiện cứng Mục 4.3 -> Lừa đảo (mạo danh tổ chức + >=1 tín hiệu mạnh)
+        if orgs and has_strong_signal and not has_safe_otp and label != "Lừa đảo":
+            label = "Lừa đảo"
+            confidence = max(confidence, 0.90)
+            follow_up = None
+
+        # Trường hợp 2: Tin OTP thật kèm cảnh báo không chia sẻ, không link lạ, không đe dọa/chuyển tiền -> An toàn
+        elif (
+            has_safe_otp
+            and not has_bad_url
+            and not url_results
+            and "de_doa_khoa_phat" not in pressure_cats
+            and "yeu_cau_tai_chinh" not in pressure_cats
+            and label != "An toàn"
+        ):
+            label = "An toàn"
+            confidence = max(confidence, 0.88)
+            reasons = [
+                "Đây là tin nhắn mã OTP hợp lệ kèm cảnh báo tuyệt đối không chia sẻ mã cho bất kỳ ai.",
+                "Không chứa đường link lạ, không đe dọa khóa tài khoản hay yêu cầu chuyển tiền.",
+            ]
+            recommendation = [
+                "Chỉ nhập mã OTP này nếu chính bạn đang thực hiện giao dịch.",
+                "Tuyệt đối không đọc hoặc gửi mã OTP cho bất kỳ ai, kể cả người tự xưng nhân viên ngân hàng.",
+            ]
+            follow_up = None
+
+        # Trường hợp 3: Tổng đài miễn cước 1800 bình thường, không link lạ, không áp lực/yêu cầu tiền
+        elif (
+            not has_bad_url
+            and not url_results
+            and not extract_result.get("pressure_phrases")
+            and not orgs
+            and any(p.startswith("1800") for p in extract_result.get("phones", []))
+            and label != "An toàn"
+        ):
+            label = "An toàn"
+            confidence = max(confidence, 0.85)
+            reasons = [
+                "Đầu số tổng đài miễn cước 1800, nội dung thông báo thông thường.",
+                "Không có đường link lạ, không gây áp lực hay yêu cầu chuyển tiền/cung cấp OTP.",
+            ]
+            recommendation = [
+                "Nội dung hiện tại chưa có dấu hiệu lừa đảo.",
+                "Vẫn không cung cấp mã OTP, mật khẩu hay chuyển tiền nếu có yêu cầu bất thường phát sinh.",
+            ]
+            follow_up = None
+
+        # Trường hợp 4: Tin giao tiếp đời thường hoàn toàn sạch (2 công cụ không thấy bất kỳ thực thể rủi ro nào)
+        elif not has_any_risk_entity and not has_clarification and label != "An toàn":
+            label = "An toàn"
+            confidence = max(confidence, 0.85)
+            reasons = [
+                "Tin nhắn có nội dung giao tiếp thông thường, không nhắc đến ngân hàng hay cơ quan tổ chức.",
+                "Không chứa đường link lạ, số điện thoại, số tài khoản hay cụm từ gây áp lực/yêu cầu chuyển tiền.",
+            ]
+            clean_evidence = [
+                {
+                    "tool": "extract_info",
+                    "finding": "Không phát hiện tổ chức bị mạo danh, đường link, số điện thoại hay cụm từ gây áp lực.",
+                },
+                {
+                    "tool": "analyze_url",
+                    "finding": "Tin nhắn không chứa đường link nào.",
+                },
+            ]
+            recommendation = [
+                "Nội dung hiện tại chưa có dấu hiệu lừa đảo; bạn có thể trao đổi bình thường.",
+                "Vẫn giữ thói quen không cung cấp mã OTP, mật khẩu hay chuyển tiền nếu người nhắn đột ngột yêu cầu sau đó.",
+            ]
+            follow_up = None
+
         if label == "Đáng ngờ" and not follow_up and not has_clarification:
             follow_up = ScamGuardAgent._default_followup_question(extract_result)
         elif label != "Đáng ngờ":

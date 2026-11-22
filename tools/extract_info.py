@@ -52,6 +52,12 @@ ORG_PATTERNS: dict[str, list[str]] = {
         "shopee express",
         "spx",
     ],
+    "Sàn TMĐT (Shopee / Lazada / TikTok)": [
+        "shopee",
+        "lazada",
+        "tiki",
+        "tiktok shop",
+    ],
 }
 
 # Các nhóm cụm từ gây áp lực / đe dọa / yêu cầu nhạy cảm (dạng không dấu)
@@ -248,11 +254,32 @@ def extract_organizations(normalized_text: str) -> list[str]:
     return found
 
 
+NEGATION_PREFIXES = (
+    "khong yeu cau ",
+    "khong can ",
+    "khong chia se ",
+    "khong cung cap ",
+    "khong phai ",
+    "khong doi ",
+)
+
+
 def extract_pressure_phrases(normalized_text: str) -> dict[str, list[str]]:
-    """Phát hiện các cụm từ gây áp lực, đe dọa, yêu cầu tài chính hoặc thông tin nhạy cảm."""
+    """Phát hiện các cụm từ gây áp lực, đe dọa, yêu cầu tài chính hoặc thông tin nhạy cảm.
+
+    Bỏ qua các cụm từ bị phủ định trực tiếp (vd: 'khong yeu cau chuyen tien').
+    """
     found_by_category: dict[str, list[str]] = {}
     for category, phrases in PRESSURE_CATEGORIES.items():
-        matched = [phrase for phrase in phrases if phrase in normalized_text]
+        matched: list[str] = []
+        for phrase in phrases:
+            idx = normalized_text.find(phrase)
+            if idx == -1:
+                continue
+            prefix_window = normalized_text[max(0, idx - 36) : idx]
+            if any(neg in prefix_window for neg in NEGATION_PREFIXES):
+                continue
+            matched.append(phrase)
         if matched:
             found_by_category[category] = matched
     return found_by_category

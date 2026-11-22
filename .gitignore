@@ -15,6 +15,7 @@ env/
 .coverage
 htmlcov/
 reports/
+data/chat_history.json
 
 # IDE
 .vscode/
